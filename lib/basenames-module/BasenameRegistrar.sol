@@ -52,8 +52,10 @@ abstract contract BasenameRegistrar {
     // =============================================================
 
     /// @notice RegistrarController on Base mainnet
+    /// @dev This is the UpgradeableRegistrarController (proxy) — the original
+    ///      RegistrarController (0x4cCb...) is no longer approved by BaseRegistrar.
     address public constant REGISTRAR_CONTROLLER =
-        0x4cCb0BB02FCABA27e82a56646E81d8c5bC4119a5;
+        0xa7d2607c6BD39Ae9521e514026CBB078405Ab322;
 
     /// @notice ReverseRegistrar on Base mainnet
     address public constant REVERSE_REGISTRAR =
@@ -138,15 +140,16 @@ abstract contract BasenameRegistrar {
             revert InsufficientETH(totalPrice, address(this).balance);
         }
 
-        // Prepare multicall data for setting address record at registration time
-        bytes32 node = BasenameUtils.basenameNode(name);
-        bytes[] memory data = new bytes[](1);
-        data[0] = abi.encodeWithSelector(
-            IL2Resolver.setAddr.selector,
-            node,
-            60, // coinType for ETH/Base
-            address(this)
-        );
+        // Register with empty data[] — the L2Resolver only allows the
+        // RegistrarController (stored in its registrarController slot) to call
+        // setAddr during registration. Since the active controller address may
+        // differ from what's stored in the resolver, we skip the setAddr multicall
+        // here and rely on reverseRecord=true for the primary (reverse) name.
+        // Forward resolution (name → address) can be set separately by the owner
+        // via the L2Resolver after registration.
+        bytes[] memory data = new bytes[](0);
+
+        uint256[] memory coinTypes = new uint256[](0);
 
         IRegistrarController.RegisterRequest memory request = IRegistrarController
             .RegisterRequest({
@@ -155,7 +158,10 @@ abstract contract BasenameRegistrar {
                 duration: duration,
                 resolver: _getL2Resolver(),
                 data: data,
-                reverseRecord: true // Automatically sets primary name
+                reverseRecord: true, // Sets primary (reverse) name: address → name
+                coinTypes: coinTypes, // No extra coin type resolution
+                referralExpiry: 0,   // No referral
+                referralData: ""     // No referral data
             });
 
         // Execute registration
