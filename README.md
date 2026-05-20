@@ -1,49 +1,51 @@
 # basename-counter
 
-A live demonstration of [basenames-module](https://github.com/mykclawd/basenames-module) — a public counter contract on Base that owns the Basename `numbercounter.base.eth`.
+A live demonstration of [basenames-module](https://github.com/mykclawd/basenames-module) — a public counter contract on Base that owns the Basename `incrementer.base.eth`.
 
 ## Live contract
 
-- **Name:** [`numbercounter.base.eth`](https://www.base.org/name/numbercounter)
-- **Address:** [`0x8e8d7bb8Ad939CaBA20dCA419A633CEb9263F36f`](https://basescan.org/address/0x8e8d7bb8ad939caba20dca419a633ceb9263f36f)
+- **Name:** [`incrementer.base.eth`](https://www.base.org/name/incrementer)
+- **Address:** [`0x2287ECB162bC14d69f336541cEEfFf738f57d676`](https://basescan.org/address/0x2287ecb162bc14d69f336541ceefff738f57d676)
 - **Network:** Base Mainnet
-- **Interact:** [Write Contract on Basescan](https://basescan.org/address/0x8e8d7bb8ad939caba20dca419a633ceb9263f36f#writeContract)
+- **Interact:** [Write Contract on Basescan](https://basescan.org/address/0x2287ecb162bc14d69f336541ceefff738f57d676#writeContract)
+
+![incrementer.base.eth resolves correctly](./incrementer-demo.jpg)
+
+Both directions resolve correctly:
+- `incrementer.base.eth` → `0x2287ECB162bC14d69f336541cEEfFf738f57d676` ✅
+- `0x2287ECB162bC14d69f336541cEEfFf738f57d676` → `incrementer.base.eth` ✅
 
 ## What it does
 
 - **Anyone** can call `increment()` to increase the counter
 - **Anyone** can call `getCount()` to read the current count
-- **Owner only** can call `registerBasename(name, duration)` to register a `.base.eth` name
-- **Owner only** can call `setForwardResolution(name)` to set the forward addr record
-- **Owner only** can call `setPrimaryBasename(name)` to update the reverse record
+- **Owner only** can call `registerBasename(name, duration)` — step 1, registers the name
+- **Owner only** can call `setForwardResolution(name)` — step 2, sets forward addr record
+- **Owner only** can call `setPrimaryBasename(name)` — updates the reverse record
 
-## How to register a basename (two steps)
+## How basename registration works (two steps)
 
 ```bash
 # Check price first
-cast call 0x8e8d7bb8Ad939CaBA20dCA419A633CEb9263F36f \
+cast call 0x2287ECB162bC14d69f336541cEEfFf738f57d676 \
   "getBasenamePrice(string,uint256)(uint256)" "myname" "31536000" \
   --rpc-url https://mainnet.base.org
 
 # Step 1: Register (sets reverse record: address → myname.base.eth)
-cast send 0x8e8d7bb8Ad939CaBA20dCA419A633CEb9263F36f \
+cast send 0x2287ECB162bC14d69f336541cEEfFf738f57d676 \
   "registerBasename(string,uint256)" "myname" "31536000" \
   --value 0.001ether \
   --rpc-url https://mainnet.base.org \
   --private-key <owner-key>
 
 # Step 2: Set forward resolution (sets: myname.base.eth → address)
-cast send 0x8e8d7bb8Ad939CaBA20dCA419A633CEb9263F36f \
+cast send 0x2287ECB162bC14d69f336541cEEfFf738f57d676 \
   "setForwardResolution(string)" "myname" \
   --rpc-url https://mainnet.base.org \
   --private-key <owner-key>
 ```
 
-Both steps use accurate gas estimates — no manual gas limit required.
-
-## Why two steps?
-
-Combining registration and the resolver write in one transaction causes wallet gas estimators (MetaMask etc.) to under-estimate gas. Splitting them keeps each tx simple and gas-estimable without any special settings.
+Two separate transactions — this avoids gas estimation issues in MetaMask and similar wallets.
 
 ## Source
 
