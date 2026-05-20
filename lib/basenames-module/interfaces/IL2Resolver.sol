@@ -28,4 +28,7 @@ interface IL2Resolver {
         bytes32 node,
         uint256 coinType
     ) external view returns (address);
+
+    /// @notice Gets the ETH address record (coinType 60 shorthand)
+    function addr(bytes32 node) external view returns (address);
 }
