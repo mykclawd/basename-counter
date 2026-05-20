@@ -18,6 +18,9 @@ interface IL2Resolver {
         address a
     ) external;
 
+    /// @notice Sets the ETH address record (coinType 60 shorthand)
+    function setAddr(bytes32 node, address a) external;
+
     /**
      * @notice Gets the address record
      */
