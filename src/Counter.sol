@@ -14,10 +14,7 @@ contract Counter is BasenameRegistrar {
     //                           STORAGE
     // =============================================================
 
-    /// @notice The owner of this contract (can manage the Basename)
     address public owner;
-
-    /// @notice The running count — anyone can increment
     uint256 public count;
 
     // =============================================================
@@ -42,7 +39,6 @@ contract Counter is BasenameRegistrar {
     //                           CONSTRUCTOR
     // =============================================================
 
-    /// @param owner_ Address that will own this contract and control the Basename.
     constructor(address owner_)
         BasenameRegistrar(address(0), address(0), address(0))
     {
@@ -69,13 +65,16 @@ contract Counter is BasenameRegistrar {
     // =============================================================
 
     /**
-     * @notice Register a Basename and set both resolution directions.
-     * @dev Only owner. The contract must hold enough ETH (send with this call).
-     *      After this:
-     *        name.base.eth → address(this)   ← forward (via _setForwardResolution)
-     *        address(this) → name.base.eth   ← reverse (via reverseRecord=true)
+     * @notice Step 1: Register a Basename and set the reverse (primary) name.
+     * @dev Only owner. Send ETH with this call (use getBasenamePrice to check amount).
+     *      Sets: address(this) → name.base.eth  ✓
+     *      After this call, run setForwardResolution(name) as a separate transaction.
+     *
+     *      Two-tx pattern avoids gas estimation issues that occur when both
+     *      registration and resolver writes are bundled together.
+     *
      * @param name     The label to register, e.g. "myapp" → myapp.base.eth
-     * @param duration Seconds to register for (minimum 31536000 = 1 year)
+     * @param duration Seconds (minimum 31536000 = 1 year)
      */
     function registerBasename(string memory name, uint256 duration)
         external
@@ -83,13 +82,13 @@ contract Counter is BasenameRegistrar {
         onlyOwner
     {
         _registerBasename(name, duration);
-        _setForwardResolution(name);
     }
 
     /**
-     * @notice Fix or update the forward addr record: name.base.eth → address(this).
-     * @dev Use this as a rescue if forward resolution is wrong or was never set.
-     *      The contract must own the name.
+     * @notice Step 2: Set the forward addr record.
+     * @dev Call this after registerBasename. No ETH needed.
+     *      Sets: name.base.eth → address(this)  ✓
+     *      Also works as a rescue if forward resolution is missing or stale.
      * @param name The label (e.g. "myapp")
      */
     function setForwardResolution(string memory name) external onlyOwner {
@@ -98,7 +97,8 @@ contract Counter is BasenameRegistrar {
 
     /**
      * @notice Update the primary (reverse) name: address(this) → name.base.eth.
-     * @dev Use when the name is already registered and owned by this contract.
+     * @dev Use when the contract already owns the name but you want to update
+     *      which name is shown as primary.
      * @param name The label or full name (e.g. "myapp" or "myapp.base.eth")
      */
     function setPrimaryBasename(string memory name) external onlyOwner {
